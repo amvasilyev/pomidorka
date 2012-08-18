@@ -1,1 +1,5 @@
 .idea/workspace.xml
+html/
+*.swp
+*.pyc
+*.pyo
