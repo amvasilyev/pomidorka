@@ -216,6 +216,8 @@ class ActivityManagerControl(QWidget):
         self.__startLongBreakActivity.setVisible(False)
         for button in buttons:
             button.setVisible(True)
+        if len(buttons) > 0:
+            buttons[0].setFocus()
 
 
 class TrayTimerDisplay():
