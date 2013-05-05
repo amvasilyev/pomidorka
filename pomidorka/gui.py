@@ -28,7 +28,7 @@
 __author__ = 'Andrey Vasilev <vamonster@gmail.com>'
 
 from PySide.QtGui import QMainWindow, QSystemTrayIcon, QWidget, QPushButton, QLabel, \
-    QVBoxLayout, QHBoxLayout
+    QVBoxLayout, QHBoxLayout, QAction
 from PySide.QtCore import QCoreApplication, Qt
 from core import ActivityManager, Settings
 import subprocess
@@ -95,11 +95,12 @@ class ActivityStatus(QMainWindow):
         process = Process(target=_executeAction, args=(self.__settings.endActivityAction,))
         process.start()
 
-    def _closeApplication(self):
-        """
-        Close the application. Save all needed information.
-        """
-        QCoreApplication.quit()
+
+def _closeApplication():
+    """
+    Close the application. Save all needed information.
+    """
+    QCoreApplication.quit()
 
 
 def _executeAction(action):
@@ -125,13 +126,13 @@ class ActivityManagerControl(QWidget):
         """
         QWidget.__init__(self, parent)
         self.__activityManager = activityManager
-        self.__startWorkActivity = QPushButton('Start', self)
-        self.__stopActivity = QPushButton('Stop', self)
-        self.__startShortBreakActivity = QPushButton('Short', self)
-        self.__startLongBreakActivity = QPushButton('Long', self)
-        self.__timeLeft = QLabel(self)
+        self.__startWorkActivity = QAction(self.tr('Start'), self)
+        self.__stopActivity = QAction(self.tr('Stop'), self)
+        self.__startShortBreakActivity = QAction(self.tr('Short'), self)
+        self.__startLongBreakActivity = QAction(self.tr('Long'), self)
+        self.__timeLeft = QLabel()
         self._layoutWidgets()
-        self._showButtons([self.__startWorkActivity])
+        self._enableActions([self.__startWorkActivity])
         self._setupEventHandlers()
         self._showStartWorkScreen()
 
@@ -146,19 +147,19 @@ class ActivityManagerControl(QWidget):
         timerLayout.addStretch()
         mainLayout.addLayout(timerLayout)
         buttonLayout = QHBoxLayout()
-        buttonLayout.addWidget(self.__startWorkActivity)
-        buttonLayout.addWidget(self.__stopActivity)
-        buttonLayout.addWidget(self.__startShortBreakActivity)
-        buttonLayout.addWidget(self.__startLongBreakActivity)
+        buttonLayout.addWidget(ActionButton(self.__startWorkActivity, self))
+        buttonLayout.addWidget(ActionButton(self.__stopActivity, self))
+        buttonLayout.addWidget(ActionButton(self.__startShortBreakActivity, self))
+        buttonLayout.addWidget(ActionButton(self.__startLongBreakActivity, self))
         mainLayout.addLayout(buttonLayout)
         self.setLayout(mainLayout)
 
     def _setupEventHandlers(self):
         """Setup connection between events and corresponding event handlers"""
-        self.__startWorkActivity.pressed.connect(self._startWorkActivity)
-        self.__stopActivity.pressed.connect(self._stopRunningActivity)
-        self.__startShortBreakActivity.pressed.connect(self._startShortBreakActivity)
-        self.__startLongBreakActivity.pressed.connect(self._startLongBreakActivity)
+        self.__startWorkActivity.triggered.connect(self._startWorkActivity)
+        self.__stopActivity.triggered.connect(self._stopRunningActivity)
+        self.__startShortBreakActivity.triggered.connect(self._startShortBreakActivity)
+        self.__startLongBreakActivity.triggered.connect(self._startLongBreakActivity)
         self.__activityManager.activityStarted += self._showActivityRunningScreen
         self.__activityManager.workActivityEnded += self._showStartRestScreen
         self.__activityManager.activityTimeChanged += self._setActivityRemainingTime
@@ -182,16 +183,16 @@ class ActivityManagerControl(QWidget):
 
     def _showActivityRunningScreen(self, _):
         """Show activity running screen"""
-        self._showButtons([self.__stopActivity])
+        self._enableActions([self.__stopActivity])
 
     def _showStartWorkScreen(self):
         """Show screen, allowing to start work"""
-        self._showButtons([self.__startWorkActivity])
+        self._enableActions([self.__startWorkActivity])
         self.__timeLeft.setText('Start an activity')
 
     def _showStartRestScreen(self):
         """Show screen calling to make a rest"""
-        self._showButtons([self.__startShortBreakActivity, self.__startLongBreakActivity])
+        self._enableActions([self.__startLongBreakActivity, self.__startShortBreakActivity])
         self.__timeLeft.setText('Take a break')
 
     def _setActivityRemainingTime(self, secondsLeft):
@@ -204,21 +205,44 @@ class ActivityManagerControl(QWidget):
         seconds = secondsLeft % 60
         self.__timeLeft.setText("{0:02d}:{1:02d}".format(minutes, seconds))
 
-    def _showButtons(self, buttons):
+    def _enableActions(self, actions):
         """
-        Make visible only specified buttons, move other buttons into invisible state
-        @param buttons: buttons to be shown
-        @type buttons: list
+        Enable only those actions that should be active now and disable all other events
+        @param actions: actions to be activated
+        @type actions: list
         """
-        self.__startWorkActivity.setVisible(False)
-        self.__stopActivity.setVisible(False)
-        self.__startShortBreakActivity.setVisible(False)
-        self.__startLongBreakActivity.setVisible(False)
-        for button in buttons:
-            button.setVisible(True)
-        if len(buttons) > 0:
-            buttons[0].setFocus()
+        self.__startWorkActivity.setEnabled(False)
+        self.__stopActivity.setEnabled(False)
+        self.__startShortBreakActivity.setEnabled(False)
+        self.__startLongBreakActivity.setEnabled(False)
+        for action in actions:
+            action.setEnabled(True)
 
 
-class TrayTimerDisplay():
-    """Updates the picture of the time """
+class ActionButton(QPushButton):
+    """Button associated with the action"""
+
+    def __init__(self, action, parent):
+        """
+        @param action: action to bound button with
+        @type action: QAction
+        @param parent: parent widget to bound button to
+        @type parent: QWidget
+        """
+        QPushButton.__init__(self, parent)
+        self.__action = action
+        self.__action.changed.connect(self._synchronizeButtonState)
+        self.clicked.connect(self.__action.trigger)
+        self._synchronizeButtonState()
+
+    def _synchronizeButtonState(self):
+        """
+        Synchronize button state with the action state
+        """
+        self.setText(self.__action.text())
+        self.setStatusTip(self.__action.statusTip())
+        self.setIcon(self.__action.icon())
+        self.setToolTip(self.__action.toolTip())
+        self.setVisible(self.__action.isEnabled())
+        if self.__action.isEnabled():
+            self.setFocus()
