@@ -28,7 +28,7 @@
 __author__ = 'Andrey Vasilev <vamonster@gmail.com>'
 
 from PySide.QtGui import QMainWindow, QSystemTrayIcon, QWidget, QPushButton, QLabel, \
-    QVBoxLayout, QHBoxLayout, QAction
+    QVBoxLayout, QHBoxLayout, QAction, QMenu
 from PySide.QtCore import QCoreApplication, Qt
 from core import ActivityManager, Settings
 import subprocess
@@ -46,7 +46,11 @@ class ActivityStatus(QMainWindow):
         self.__settings = Settings()
         self.__activityManager = ActivityManager(self.__settings)
         self.__trayIcon = QSystemTrayIcon(self)
-        self.__appView = ActivityManagerControl(self, self.__activityManager)
+        self.__managerController = ActivityManagerControl(self, self.__activityManager)
+        self.__appMenu = QMenu(self)
+        self.__closeAction = QAction(self.tr('Close'), self)
+        self._configureActions()
+        self._configureMenu()
         self._setupTrayIcon()
         self._configureStatusManager()
         self._setupEventHooks()
@@ -58,16 +62,27 @@ class ActivityStatus(QMainWindow):
         self.__trayIcon.setIcon(resources.getIcon('pomidor.png'))
         self.__trayIcon.show()
         self.__trayIcon.activated.connect(self._trayIconClicked)
+        self.__trayIcon.setContextMenu(self.__appMenu)
 
     def _configureStatusManager(self):
         """Setup contents of the main window"""
-        self.setCentralWidget(self.__appView)
+        self.setCentralWidget(self.__managerController)
 
     def _setupEventHooks(self):
         """Connect to event hooks provided by the activity manager"""
         self.__activityManager.activityStarted += self._hideMainWindow
         self.__activityManager.workActivityEnded += self._notifyActivityEnding
         self.__activityManager.breakActivityEnded += self._notifyActivityEnding
+
+    def _configureMenu(self):
+        """Configure application menu, add all actions and separators"""
+        self.__appMenu.addActions(self.__managerController.actionList)
+        self.__appMenu.addSeparator()
+        self.__appMenu.addAction(self.__closeAction)
+
+    def _configureActions(self):
+        """Configure actions of the main controller"""
+        self.__closeAction.triggered.connect(_closeApplication)
 
     def _trayIconClicked(self, reason):
         """
@@ -130,6 +145,8 @@ class ActivityManagerControl(QWidget):
         self.__stopActivity = QAction(self.tr('Stop'), self)
         self.__startShortBreakActivity = QAction(self.tr('Short'), self)
         self.__startLongBreakActivity = QAction(self.tr('Long'), self)
+        self.actionList = [self.__startWorkActivity, self.__stopActivity,
+                           self.__startLongBreakActivity, self.__startShortBreakActivity]
         self.__timeLeft = QLabel()
         self._layoutWidgets()
         self._enableActions([self.__startWorkActivity])
@@ -211,10 +228,8 @@ class ActivityManagerControl(QWidget):
         @param actions: actions to be activated
         @type actions: list
         """
-        self.__startWorkActivity.setEnabled(False)
-        self.__stopActivity.setEnabled(False)
-        self.__startShortBreakActivity.setEnabled(False)
-        self.__startLongBreakActivity.setEnabled(False)
+        for action in self.actionList:
+            action.setEnabled(False)
         for action in actions:
             action.setEnabled(True)
 
