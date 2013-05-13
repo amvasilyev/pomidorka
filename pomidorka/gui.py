@@ -28,8 +28,8 @@
 __author__ = 'Andrey Vasilev <vamonster@gmail.com>'
 
 from PySide.QtGui import QMainWindow, QSystemTrayIcon, QWidget, QPushButton, QLabel, \
-    QVBoxLayout, QHBoxLayout, QAction, QMenu
-from PySide.QtCore import QCoreApplication, Qt
+    QVBoxLayout, QHBoxLayout, QAction, QMenu, QApplication
+from PySide.QtCore import QCoreApplication, Qt, QPoint
 from core import ActivityManager, Settings
 import subprocess
 from multiprocessing import Process
@@ -90,7 +90,10 @@ class ActivityStatus(QMainWindow):
         @param reason: how the icon was clicked
         """
         if reason == QSystemTrayIcon.Trigger:
-            self.setVisible(not self.isVisible())
+            if self.isVisible():
+                self._hideMainWindow()
+            else:
+                self._showMainWindw()
 
     def closeEvent(self, event):
         """
@@ -102,8 +105,16 @@ class ActivityStatus(QMainWindow):
         self._hideMainWindow()
 
     def _hideMainWindow(self, _=''):
-        """ Hide main window from the screen """
-        self.hide()
+        """Hide main window from the screen"""
+        self.setVisible(False)
+
+    def _showMainWindw(self):
+        """Show main window near-by to the system tray icon"""
+        self.setVisible(True)
+        trayIconGeometry = self.__trayIcon.geometry()
+        screenGeometry = QApplication.desktop().screenGeometry(trayIconGeometry.topLeft())
+        self.move(_calculateWindowPosition(screenGeometry, trayIconGeometry, self.width(),
+                                           self.height()))
 
     def _notifyActivityEnding(self):
         """Invoke activity ending action"""
@@ -125,6 +136,83 @@ def _executeAction(action):
     @type action: str
     """
     subprocess.call(action.format(base=resources.BASEDIR), shell=True)
+
+"""Possible locations of the system tray in which tray icon is shown"""
+LEFT = 'left'
+BOTTOM = 'bottom'
+RIGHT = 'right'
+TOP = 'top'
+
+
+def _calculateWindowPosition(screenGeometry, iconGeometry, windowWidth, windowHeight):
+    """
+    Calculate window position near-by the system tray using geometry of a system tray
+    and window geometry
+    @param screenGeometry: geometry of the screen where system tray is located
+    @type screenGeometry: QRect
+    @param iconGeometry: geometry of the system tray icon in screen coordinates
+    @type iconGeometry: QRect
+    @param windowWidth: width of the main window
+    @type windowWidth: int
+    @param windowHeight: height of the main window including header
+    @type windowHeight: int
+    @return: coordinates for main window positioning
+    @rtype: QPoint
+    """
+    possibleWindowPositions = {
+        LEFT: {
+            'x': iconGeometry.x() + iconGeometry.width(),
+            'y': iconGeometry.y() + iconGeometry.height() / 2 - windowHeight / 2
+        },
+        BOTTOM: {
+            'x': iconGeometry.x() + iconGeometry.width() / 2 - windowWidth / 2,
+            'y': iconGeometry.y() - windowHeight
+        },
+        RIGHT: {
+            'x': iconGeometry.x() - windowWidth,
+            'y': iconGeometry.y() + iconGeometry.height() / 2 - windowHeight / 2
+        },
+        TOP: {
+            'x': iconGeometry.x() + iconGeometry.width() / 2 - windowWidth / 2,
+            'y': iconGeometry.y() + iconGeometry.height()
+        },
+    }
+    position = possibleWindowPositions[_guessTrayPosition(screenGeometry, iconGeometry)]
+    return QPoint(position['x'], position['y'])
+
+
+def _guessTrayPosition(screenGeometry, iconGeometry):
+    """
+    Function uses simple heuristic to guess the position of system tray on the screen
+    @param screenGeometry: screen size where the icon is located
+    @type screenGeometry: QRect
+    @param iconGeometry: geometry of the tray icon
+    @type iconGeometry: QRect
+    @return: string identifying possible position of the tray
+    @rtype: str
+    """
+    testPoints = {
+        LEFT: {
+            'x': iconGeometry.x() - iconGeometry.width() * 2,
+            'y': iconGeometry.y()
+        },
+        BOTTOM: {
+            'x': iconGeometry.x(),
+            'y': iconGeometry.y() + iconGeometry.height() * 2
+        },
+        RIGHT: {
+            'x': iconGeometry.x() + iconGeometry.width() * 2,
+            'y': iconGeometry.y()
+        },
+        TOP: {
+            'x': iconGeometry.x(),
+            'y': iconGeometry.y() - iconGeometry.height() * 2
+        },
+    }
+    for location in testPoints:
+        point = testPoints[location]
+        if not screenGeometry.contains(point['x'], point['y']):
+            return location
 
 
 class ActivityManagerControl(QWidget):
