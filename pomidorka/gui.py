@@ -28,7 +28,8 @@
 __author__ = 'Andrey Vasilev <vamonster@gmail.com>'
 
 from PySide.QtGui import QMainWindow, QSystemTrayIcon, QWidget, QPushButton, QLabel, \
-    QVBoxLayout, QHBoxLayout, QAction, QMenu, QApplication
+    QVBoxLayout, QHBoxLayout, QAction, QMenu, QApplication, QIcon, QPainter, QFont, QPen, \
+    QColor
 from PySide.QtCore import QCoreApplication, Qt, QPoint
 from core import ActivityManager, Settings
 import subprocess
@@ -49,30 +50,33 @@ class ActivityStatus(QMainWindow):
         self.__managerController = ActivityManagerControl(self, self.__activityManager)
         self.__appMenu = QMenu(self)
         self.__closeAction = QAction(self.tr('Close'), self)
+        self.__appIcon = resources.getIcon('pomidor.png')
         self._configureActions()
         self._configureMenu()
         self._setupTrayIcon()
-        self._configureStatusManager()
+        self._configureMainWindow()
         self._setupEventHooks()
 
     def _setupTrayIcon(self):
         """
         Set initial image on tray icon
         """
-        self.__trayIcon.setIcon(resources.getIcon('pomidor.png'))
+        self.__trayIcon.setIcon(self.__appIcon)
         self.__trayIcon.show()
         self.__trayIcon.activated.connect(self._trayIconClicked)
         self.__trayIcon.setContextMenu(self.__appMenu)
 
-    def _configureStatusManager(self):
-        """Setup contents of the main window"""
+    def _configureMainWindow(self):
+        """Configure main window contents"""
         self.setCentralWidget(self.__managerController)
+        self.setWindowIcon(self.__appIcon)
 
     def _setupEventHooks(self):
         """Connect to event hooks provided by the activity manager"""
         self.__activityManager.activityStarted += self._hideMainWindow
         self.__activityManager.workActivityEnded += self._notifyActivityEnding
         self.__activityManager.breakActivityEnded += self._notifyActivityEnding
+        self.__activityManager.activityTimeChanged += self._showRemainingTime
 
     def _configureMenu(self):
         """Configure application menu, add all actions and separators"""
@@ -119,7 +123,30 @@ class ActivityStatus(QMainWindow):
     def _notifyActivityEnding(self):
         """Invoke activity ending action"""
         process = Process(target=_executeAction, args=(self.__settings.endActivityAction,))
+        self.__trayIcon.setIcon(self.__appIcon)
         process.start()
+
+    def _showRemainingTime(self, seconds):
+        """
+        Show remaining time to the user
+        @param seconds: remaining time
+        @type seconds: int
+        """
+        if seconds > 60:
+            time = int(seconds / 60)
+        else:
+            time = seconds
+        text = "{0:02d}".format(time)
+        basePixelMap = resources.getPixelMap('pomidor.png')
+        painter = QPainter(basePixelMap)
+        painter.setFont(QFont("PT Sans", 64, QFont.Bold))
+        painter.setPen(QPen(QColor(0, 0, 0)))
+        painter.drawText(basePixelMap.rect(), Qt.AlignCenter, text)
+        painter.setFont(QFont("PT Sans", 58, QFont.Bold))
+        painter.setPen(QPen(QColor(240, 240, 240)))
+        painter.drawText(basePixelMap.rect(), Qt.AlignCenter, text)
+        painter.end()
+        self.__trayIcon.setIcon(QIcon(basePixelMap))
 
 
 def _closeApplication():
