@@ -36,6 +36,7 @@ import subprocess
 from multiprocessing import Process
 from pomidorka import resources
 import sys
+import logging
 
 
 class ActivityStatus(QMainWindow):
@@ -57,6 +58,7 @@ class ActivityStatus(QMainWindow):
         self._setupTrayIcon()
         self._configureMainWindow()
         self._setupEventHooks()
+        logging.debug('Application started')
 
     def _setupTrayIcon(self):
         """
@@ -94,6 +96,7 @@ class ActivityStatus(QMainWindow):
         Process the click on the tray icon
         @param reason: how the icon was clicked
         """
+        logging.debug('Tray icon clicked')
         if reason == QSystemTrayIcon.Trigger:
             if self.isVisible():
                 self._hideMainWindow()
@@ -111,10 +114,12 @@ class ActivityStatus(QMainWindow):
 
     def _hideMainWindow(self, _=''):
         """Hide main window from the screen"""
+        logging.debug('Main window is hidden')
         self.setVisible(False)
 
     def _showMainWindw(self):
         """Show main window near-by to the system tray icon"""
+        logging.debug('Main window is shown')
         self.setVisible(True)
         trayIconGeometry = self.__trayIcon.geometry()
         screenGeometry = QApplication.desktop().screenGeometry(trayIconGeometry.topLeft())
@@ -123,9 +128,10 @@ class ActivityStatus(QMainWindow):
 
     def _notifyActivityEnding(self):
         """Invoke activity ending action"""
+        logging.debug('Notifying user about action ending')
         process = Process(target=_executeAction, args=(self.__settings.endActivityAction,))
-        self.__trayIcon.setIcon(self.__appIcon)
         process.start()
+        self.__trayIcon.setIcon(self.__appIcon)
 
     def _showRemainingTime(self, seconds):
         """
@@ -154,6 +160,7 @@ def _closeApplication():
     """
     Close the application. Save all needed information.
     """
+    logging.debug('Application is shut down')
     QCoreApplication.quit()
 
 
@@ -163,7 +170,9 @@ def _executeAction(action):
     @param action: action to be executed
     @type action: str
     """
-    subprocess.call(action.format(base=resources.BASEDIR), shell=True)
+    runningAction = action.format(base=resources.BASEDIR)
+    logging.debug('Executing subprocess: %s', runningAction)
+    subprocess.call(runningAction, shell=True)
 
 """Possible locations of the system tray in which tray icon is shown"""
 LEFT = 'left'
@@ -300,31 +309,38 @@ class ActivityManagerControl(QWidget):
 
     def _startWorkActivity(self):
         """ Start work activity for the user """
+        logging.debug('Starting work activity')
         self.__activityManager.startWorkActivity()
 
     def _stopRunningActivity(self):
         """ Stop the currently running activity """
+        logging.debug('Stopping running activity')
         self.__activityManager.stopCurrentActivity()
 
     def _startShortBreakActivity(self):
         """ Start short break activity """
+        logging.debug('Starting short break activity')
         self.__activityManager.startShortBreakActivity()
 
     def _startLongBreakActivity(self):
         """ Start long break activity """
+        logging.debug('Starting long break activity')
         self.__activityManager.startLongBreakActivity()
 
     def _showActivityRunningScreen(self, _):
         """Show activity running screen"""
+        logging.debug('Activity started')
         self._enableActions([self.__stopActivity])
 
     def _showStartWorkScreen(self):
         """Show screen, allowing to start work"""
+        logging.debug('Work activity ended')
         self._enableActions([self.__startWorkActivity])
         self.__timeLeft.setText('Start an activity')
 
     def _showStartRestScreen(self):
         """Show screen calling to make a rest"""
+        logging.info('Rest activity ended')
         self._enableActions([self.__startLongBreakActivity, self.__startShortBreakActivity])
         self.__timeLeft.setText('Take a break')
 
@@ -383,6 +399,7 @@ def startApplication():
     """
     Start application and show application window
     """
+    logging.debug('Starting application')
     app = QApplication(sys.argv)
     ActivityStatus()
     return app.exec_()
