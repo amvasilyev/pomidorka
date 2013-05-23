@@ -1,5 +1,6 @@
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# Copyright (c) 2012-13, Andrey Vasilev
+# Copyright (c) 2012-2013, Andrey Vasilev
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -23,48 +24,35 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-"""Resources configuration module. Provides access to application resources"""
+"""
+Starter module for the Pomidorka app - the support tool for pomodoro technique
+"""
 
 __author__ = 'Andrey Vasilev <vamonster@gmail.com>'
 
-import os
-import sys
-from PySide.QtGui import QIcon, QPixmap
+from argparse import ArgumentParser, RawDescriptionHelpFormatter
+import logging
+from pomidorka import gui
 
-if os.name == 'nt':
-    BASEDIR = os.path.dirname(sys.executable)
-else:
-    BASEDIR = os.path.dirname(os.path.dirname(__file__))
+if __name__ == '__main__':
+    app_license = '''
+    Pomidorka - the support tool for pomodoro technique
 
+    Created by Andrey Vasilev.
+    Copyright (c) 2012-2013. All rights reserved.
 
-def getIcon(name):
-    """
-    Load icon from the file
-    @param name: name of the file
-    @type name: str
-    @return: new icon object
-    @rtype: QIcon
-    """
-    return QIcon(getFilePath(name))
+    Licensed under the BSD 2-Clause License
+    http://opensource.org/licenses/BSD-2-Clause
 
-
-def getPixelMap(name):
-    """
-    Load pixel map from the file
-    @param name: name of the file
-    @type name: str
-    @return: new pixel map object
-    @rtype: QPixmap
-    """
-    return QPixmap(getFilePath(name))
-
-
-def getFilePath(name):
-    """
-    Get a path to the file
-    @param name: name of the file
-    @type name: str
-    @return: path to the file
-    @rtype: str
-    """
-    return os.path.join(BASEDIR, 'images', name)
+    Distributed on an "AS IS" basis without warranties
+    or conditions of any kind, either express or implied.'''
+    parser = ArgumentParser(description=app_license,
+                            formatter_class=RawDescriptionHelpFormatter)
+    parser.add_argument('-v', '--verbose', help='show verbose information during run',
+                        action='store_true')
+    arguments = parser.parse_args()
+    logLevel = logging.INFO
+    if arguments.verbose:
+        logLevel = logging.DEBUG
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logLevel)
+    gui.startApplication()

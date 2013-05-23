@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2012, Andrey Vasilev
+# Copyright (c) 2012-13, Andrey Vasilev
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -31,10 +31,11 @@ from PySide.QtGui import QMainWindow, QSystemTrayIcon, QWidget, QPushButton, QLa
     QVBoxLayout, QHBoxLayout, QAction, QMenu, QApplication, QIcon, QPainter, QFont, QPen, \
     QColor
 from PySide.QtCore import QCoreApplication, Qt, QPoint
-from core import ActivityManager, Settings
+from pomidorka.core import ActivityManager, Settings
 import subprocess
 from multiprocessing import Process
-import resources
+from pomidorka import resources
+import sys
 
 
 class ActivityStatus(QMainWindow):
@@ -376,3 +377,12 @@ class ActionButton(QPushButton):
         self.setVisible(self.__action.isEnabled())
         if self.__action.isEnabled():
             self.setFocus()
+
+
+def startApplication():
+    """
+    Start application and show application window
+    """
+    app = QApplication(sys.argv)
+    ActivityStatus()
+    return app.exec_()

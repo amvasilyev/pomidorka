@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2012, Andrey Vasilev
+# Copyright (c) 2012-13, Andrey Vasilev
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,

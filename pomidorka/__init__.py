@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# Copyright (c) 2012, Andrey Vasilev
+# Copyright (c) 2012-2013, Andrey Vasilev
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without modification,
@@ -23,15 +23,8 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-""" Application starter module """
+"""
+Package contains modules for running Pomidorka application
+"""
 
 __author__ = 'Andrey Vasilev <vamonster@gmail.com>'
-
-from PySide.QtGui import QApplication
-from gui import ActivityStatus
-import sys
-
-if __name__ == '__main__':
-    app = QApplication(sys.argv)
-    window = ActivityStatus()
-    app.exec_()
