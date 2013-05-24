@@ -276,6 +276,6 @@ class Settings:
         self.workPeriod = 1500
         self.shortRestPeriod = 300
         self.longRestPeriod = 1500
-        self.endActivityAction = 'mplayer {base}/assets/alarm.mp3'
+        self.endActivityAction = 'mpg123 {base}/assets/alarm.mp3'
 
 

@@ -340,7 +340,7 @@ class ActivityManagerControl(QWidget):
 
     def _showStartRestScreen(self):
         """Show screen calling to make a rest"""
-        logging.info('Rest activity ended')
+        logging.debug('Rest activity ended')
         self._enableActions([self.__startLongBreakActivity, self.__startShortBreakActivity])
         self.__timeLeft.setText('Take a break')
 
